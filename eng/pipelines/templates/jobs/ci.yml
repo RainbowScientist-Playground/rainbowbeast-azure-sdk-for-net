@@ -376,3 +376,39 @@ jobs:
           ServiceDirectory: ${{ parameters.ServiceDirectory }}
           TestSetupSteps: ${{ parameters.TestSetupSteps }}
           TestTimeoutInMinutes: ${{ parameters.TestTimeoutInMinutes }}
+
+  - ${{ if ne(parameters.TestDependsOnDependency, 'not-specified') }}:
+    - template: /eng/common/pipelines/templates/jobs/generate-job-matrix.yml
+      parameters:
+        GenerateJobName: generate_target_dependencies_test_matrix
+        JobTemplatePath: /eng/pipelines/templates/jobs/ci.tests.yml
+        MatrixConfigs: ${{ parameters.MatrixConfigs }}
+        MatrixFilters: ${{ parameters.MatrixFilters }}
+        MatrixReplace:
+          # Force UseProjectReferenceToAzureClients option to always be true because we only want to test with ProjectReference for dependency tests
+          - AdditionalTestArguments=\/p:UseProjectReferenceToAzureClients\=false/\/p:UseProjectReferenceToAzureClients\=true
+          - ${{ each matrixReplace in parameters.MatrixReplace }}:
+              - ${{ matrixReplace }}
+        CloudConfig:
+          Cloud: public
+        SparseCheckoutPaths:
+          - /*
+          - '!/sdk/*/**/SessionRecords/*'
+        PreGenerationSteps:
+          - ${{ each config in parameters.MatrixConfigs }}:
+              - template: /eng/pipelines/templates/steps/dependency.tests.yml
+                parameters:
+                  TestDependsOnDependency: ${{ parameters.TestDependsOnDependency }}
+                  # The value for ProjectListOverrideFilePropertyName should be the same as AdditionalParameters ProjectListOverrideFilePropertyName below
+                  ProjectListOverrideFilePropertyName: 'ProjectListOverrideFile'
+                  ProjectFilesOutputFolder: $(Build.ArtifactStagingDirectory)
+                  ExcludeTargetTestProjects: true
+                  ServiceDirectory: ${{ parameters.ServiceDirectory }}
+                  MatrixConfigsFile: ${{ config.Path }}
+        AdditionalParameters:
+          SDKType: ${{ parameters.SDKType }}
+          ServiceDirectory: ${{ parameters.ServiceDirectory }}
+          TestSetupSteps: ${{ parameters.TestSetupSteps }}
+          TestTimeoutInMinutes: ${{ parameters.TestTimeoutInMinutes }}
+          # The value for ProjectListOverrideFilePropertyName should be the same as dependency.tests.yml parameter ProjectListOverrideFilePropertyName
+          ProjectListOverrideFilePropertyName: 'ProjectListOverrideFile'
