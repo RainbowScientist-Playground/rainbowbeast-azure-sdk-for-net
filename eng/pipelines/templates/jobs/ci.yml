@@ -150,6 +150,7 @@ jobs:
           Artifacts: ${{parameters.Artifacts}}
           DocGenerationDir: "$(Build.SourcesDirectory)/doc/ApiDocGeneration"
           LibType: 'client'
+          PackageInfoFolder: '$(Build.ArtifactStagingDirectory)/PackageInfo'
 
       - ${{ if eq(parameters.CheckAOTCompat, 'true') }}:
         - template: /eng/pipelines/templates/steps/aot-compatibility.yml
