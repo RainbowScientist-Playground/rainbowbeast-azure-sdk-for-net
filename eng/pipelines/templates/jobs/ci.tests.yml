@@ -89,7 +89,7 @@ jobs:
                 - "!SessionRecords"
                 - "/sdk/*/**/SessionRecords/*"
 
-       ${{ if ne(parameters.ProjectListOverrideFilePropertyName, '') }}:
+      - ${{ if ne(parameters.ProjectListOverrideFilePropertyName, '') }}:
         - task: DownloadPipelineArtifact@2
           inputs:
             artifact: DependencyTestProjectReferences
