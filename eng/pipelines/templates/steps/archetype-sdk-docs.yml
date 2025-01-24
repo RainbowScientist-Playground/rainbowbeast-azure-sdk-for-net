@@ -43,7 +43,7 @@ steps:
   # artifacts will only be blank if the template is called with no Artifact parameter,
   # which should only happen in the case of a PR build. In this case we locate all that were directly
   # changed and build their docs.
-  - ${{ if not parameters.Artifacts }}:
+  - ${{ if not(parameters.Artifacts) }}:
     - pwsh: |
         $failedBuild = $false
 
