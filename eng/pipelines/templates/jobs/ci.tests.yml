@@ -88,18 +88,28 @@ jobs:
                 - "/*"
                 - "!SessionRecords"
                 - "/sdk/*/**/SessionRecords/*"
+
+       ${{ if ne(parameters.ProjectListOverrideFilePropertyName, '') }}:
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            artifact: DependencyTestProjectReferences
+            patterns: "**/$(${{ parameters.ProjectListOverrideFilePropertyName }})"
+            path: $(Build.SourcesDirectory)
       - ${{ if and(eq(variables['Build.Reason'], 'PullRequest'), eq(parameters.ServiceDirectory, 'auto')) }}:
         - task: DownloadPipelineArtifact@2
           inputs:
             artifact: TestPackagesArtifact
             path: $(Build.SourcesDirectory)/PackageInfo
+
       - pwsh: |
           $(Build.SourcesDirectory)/eng/common/scripts/trust-proxy-certificate.ps1
         displayName: 'Language Specific Certificate Trust'
+
       - pwsh: |
           Write-Host "##vso[task.setvariable variable=ASPNETCORE_Kestrel__Certificates__Default__Path]$(Build.SourcesDirectory)/eng/common/testproxy/dotnet-devcert.pfx"
           Write-Host "##vso[task.setvariable variable=ASPNETCORE_Kestrel__Certificates__Default__Password]password"
         displayName: 'Configure Kestrel Environment Variables'
+
       - template: /eng/common/pipelines/templates/steps/verify-agent-os.yml
         parameters:
           AgentImage: ${{ parameters.OSName }}
@@ -112,9 +122,8 @@ jobs:
           Get-ChildItem -Path $(Build.SourcesDirectory) | ForEach-Object { Write-Host $_.FullName }
         displayName: Dump Visible Files
 
+      # this section is only included when invoking with a dynamic set of packages (EG net - pullrequest)
       - ${{ if and(eq(variables['Build.Reason'], 'PullRequest'), eq(parameters.ServiceDirectory, 'auto')) }}:
-        # this template will set ProjectListOverrideFile variable, otherwise the build and test command will apply
-        # to the targeted service directory only
         - template: /eng/pipelines/templates/steps/set-artifact-packages.yml
           parameters:
             PackageInfo: '$(Build.SourcesDirectory)/PackageInfo'
@@ -131,7 +140,18 @@ jobs:
           NuGetCacheKey: Test
 
       - pwsh: |
-          Write-Host "##vso[task.setvariable variable=CodeCoverageFilePattern]$(Build.SourcesDirectory)\sdk\$(ServiceDirectory)\**\coverage.cobertura.xml"
+          if ("${{ parameters.ProjectListOverrideFilePropertyName }}" -ne '') {
+            Write-Host "##vso[task.setvariable variable=ProjectListOverrideFile]$(${{ parameters.ProjectListOverrideFilePropertyName }})"
+            Write-Host "##vso[task.setvariable variable=CodeCoverageFilePattern]$(Build.SourcesDirectory)/sdk/**/coverage.cobertura.xml"
+          }
+          else
+          {
+            # if not ProjectListOverrideFile is not set, we aren't running in net - pullrequest, so we need to default the ProjectListOverrideFile to be defined
+            if (!$env:PROJECTLISTOVERRIDEFILE) {
+              Write-Host "##vso[task.setvariable variable=ProjectListOverrideFile] "
+            }
+            Write-Host "##vso[task.setvariable variable=CodeCoverageFilePattern]$(Build.SourcesDirectory)/sdk/$(ServiceDirectory)/**/coverage.cobertura.xml"
+          }
         displayName: Set variable for the project list file and coverage directory
 
       - template: /eng/pipelines/templates/steps/dotnet-diagnostics.yml
@@ -170,9 +190,9 @@ jobs:
         displayName: Generate Code Coverage Reports
         inputs:
           reports: $(CodeCoverageFilePattern)
-          targetdir: $(Build.ArtifactStagingDirectory)\coverage
+          targetdir: $(Build.ArtifactStagingDirectory)/coverage
           reporttypes: Cobertura
-          filefilters: +$(Build.SourcesDirectory)\sdk\$(ServiceDirectory)\**
+          filefilters: +$(Build.SourcesDirectory)/sdk/$(ServiceDirectory)\**
           verbosity: Verbose
       - task: PublishCodeCoverageResults@2
         condition: and(succeededOrFailed(), eq(variables['CollectCoverage'], 'true'), eq(variables['coverage.collected'], 'true'))
