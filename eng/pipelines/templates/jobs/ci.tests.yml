@@ -192,7 +192,7 @@ jobs:
           reports: $(CodeCoverageFilePattern)
           targetdir: $(Build.ArtifactStagingDirectory)/coverage
           reporttypes: Cobertura
-          filefilters: +$(Build.SourcesDirectory)/sdk/$(ServiceDirectory)\**
+          filefilters: +$(Build.SourcesDirectory)/sdk/$(ServiceDirectory)/**
           verbosity: Verbose
       - task: PublishCodeCoverageResults@2
         condition: and(succeededOrFailed(), eq(variables['CollectCoverage'], 'true'), eq(variables['coverage.collected'], 'true'))

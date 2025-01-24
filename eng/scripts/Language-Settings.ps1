@@ -11,14 +11,9 @@ $PackageRepositoryUri = "https://www.nuget.org/packages"
 
 $DependencyCalculationPackages = @(
   "Azure.Core",
-  "Azure.Identity"#,
-  # "Azure.ResourceManager" temporarily removed until we can figure out why it's not working correctly on the build machine. it works locally
+  "Azure.ResourceManager"
 )
 
-# this entire thing should go away in favor of having the eng/services call
-# return just the dependent packages, versus the entire set of dependent test packages only.
-# this is a temporary workaround to use the existing dependency calculation to uncover
-# any other situations I might be missing
 function processTestProject($projPath) {
   $cleanPath = $projPath -replace "^\$\(RepoRoot\)", ""
 
