@@ -140,10 +140,10 @@ jobs:
           NuGetCacheKey: Test
 
       # ProjectListOverrideFile is set by the customization within dependency.tests.yml
-      # In this sole case, we need to NOT attempt to set this, as the variable will be set by the matrix parameters
-      # and overriding it is NOT possible.
+      # OR it is set by the PR built to target a set of packages outside of a single target service directory.
+      # that occurs within `set-artifact-packages.yml`
       - pwsh: |
-          if ("${{ parameters.ProjectListOverrideFilePropertyName }}" -ne '') {
+          if ("${{ parameters.ProjectListOverrideFilePropertyName }}" -ne '' -or "${{ parameters.ServiceDirectory }}" -eq 'auto') {
             Write-Host "##vso[task.setvariable variable=CodeCoverageFilePattern]$(Build.SourcesDirectory)/sdk/**/coverage.cobertura.xml"
           }
           else
